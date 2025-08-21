@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Form + Video Gate</title>
+  <style>
+    :root{
+      --pink:#ff3aa6;
+      --pink-2:#ff7bc9;
+      --bg-dark:#09090f;
+      --card:#121223e6;
+      --text:#f5e9f7;
+      --muted:#c7b6cf;
+      --maxw: 980px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+      color:var(--text); background:var(--bg-dark);
+      /* Background image: REPLACE the url() below with your hosted image link */
+      background-image: url('background.jpg');
+      background-size: cover; background-position:center; background-attachment: fixed;
+    }
+    /* overlay to darken bg for contrast */
+    body::before{
+      content:""; position:fixed; inset:0; background:radial-gradient(80% 60% at 50% 20%, #0000, #000 90%);
+      pointer-events:none; z-index:-1;
+    }
+    .wrap{min-height:100%; display:grid; place-items:center; padding:24px}
+    .card{width:min(100%,var(--maxw)); background:var(--card); border:1px solid #ffffff1a; border-radius:20px; box-shadow:0 20px 60px #0008; padding:18px}
+
+    .title{display:flex; align-items:center; gap:10px; padding:6px 8px 14px;}
+    .dot{width:10px; height:10px; border-radius:999px; background:var(--pink); box-shadow:0 0 18px var(--pink)}
+    .title h1{font-size:20px; margin:0; font-weight:700; letter-spacing:.3px}
+
+    .video-box{position:relative; width:100%; aspect-ratio:16/9; border-radius:14px; overflow:hidden; background:#000}
+    #player{position:absolute; inset:0; width:100%; height:100%}
+
+    /* floating form on top of video */
+    .floating-form{position:absolute; left:16px; top:16px; width:min(380px,calc(100% - 32px)); backdrop-filter: blur(6px);
+      background:linear-gradient(180deg, #1a0f1fcc, #0f0f1acc); border:1px solid #ffffff26; border-radius:14px; padding:12px; box-shadow:0 10px 30px #0008}
+    .floating-form h2{margin:0 0 8px 0; font-size:16px; color:var(--pink-2)}
+    .grid{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+    .grid-1{grid-template-columns:1fr}
+    label{font-size:12px; color:var(--muted)}
+    input{width:100%; margin-top:4px; padding:10px 12px; border-radius:10px; border:1px solid #ffffff2a; background:#0a0a13cc; color:var(--text)}
+    input::placeholder{color:#ffffff6b}
+
+    .caption{margin:14px 6px 0; font-size:16px; line-height:1.6; color:#ffb8e8}
+
+    .actions{display:flex; justify-content:center}
+    #continueBtn{display:none; margin-top:18px; padding:12px 24px; font-size:16px; border-radius:999px; border:1px solid #ffffff20; background:var(--pink); color:#1a0d18; cursor:pointer; box-shadow:0 10px 28px #ff3aa640}
+    #continueBtn:active{transform:translateY(1px)}
+    #continueBtn:focus{outline:2px solid #ffffff55}
+
+    /* decorative pink glow */
+    .glow{position:absolute; inset:auto; left:0; right:0; bottom:-50px; height:160px; background: radial-gradient(40% 50% at 50% 0%, #ff3aa633, transparent 70%); pointer-events:none}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <main class="card" role="main">
+      <div class="title"><span class="dot"></span><h1>Core EP 26 – Nghe bài Trình</h1></div>
+      <section class="video-box">
+        <div id="player" title="YouTube player"></div>
+
+        <!-- Form nổi trên video (không có nút submit) -->
+        <form class="floating-form" onsubmit="return false" autocomplete="on">
+          <h2>Thông tin người xem</h2>
+          <div class="grid grid-1">
+            <div>
+              <label for="fullname">Họ và tên</label>
+              <input id="fullname" name="fullname" placeholder="Ví dụ: Nguyễn Văn A" required>
+            </div>
+          </div>
+          <div class="grid">
+            <div>
+              <label for="class">Lớp</label>
+              <input id="class" name="class" placeholder="VD: 12A3" required>
+            </div>
+            <div>
+              <label for="school">Trường</label>
+              <input id="school" name="school" placeholder="VD: THPT ..." required>
+            </div>
+          </div>
+          <div class="grid grid-1">
+            <div>
+              <label for="dob">Ngày tháng năm sinh</label>
+              <input id="dob" name="dob" type="date" required>
+            </div>
+          </div>
+        </form>
+        <div class="glow"></div>
+      </section>
+
+      <p class="caption">Hết bài hát, vui lòng ấn nút "Tiếp tục" để nhận kết quả.</p>
+      <div class="actions">
+        <!-- THAY đường dẫn bên dưới để chuyển trang khi bấm Tiếp tục -->
+        <a id="continueLink" href="#"><button id="continueBtn" type="button">Tiếp tục</button></a>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // ========================
+    // Config
+    // ========================
+    const videoId = "7kO_ALcwNAw"; // extracted from the YouTube URL you gave
+    const continueUrl = "#"; // TODO: set to your results page URL
+
+    // Update the link target
+    document.getElementById('continueLink').setAttribute('href', continueUrl);
+
+    // Load the YouTube IFrame API
+    const tag = document.createElement('script');
+    tag.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(tag);
+
+    let player;
+    window.onYouTubeIframeAPIReady = function() {
+      player = new YT.Player('player', {
+        videoId,
+        width: '100%', height: '100%',
+        playerVars: {
+          rel: 0,
+          modestbranding: 1,
+          playsinline: 1,
+          // start: 0
+        },
+        events: { 'onStateChange': onPlayerStateChange }
+      });
+    }
+
+    // Only reveal the Continue button when the video has fully ended
+    function onPlayerStateChange(e){
+      if(e.data === YT.PlayerState.ENDED){
+        document.getElementById('continueBtn').style.display = 'inline-block';
+      }
+    }
+
+    // OPTIONAL: prevent navigation if required fields are empty
+    document.getElementById('continueLink').addEventListener('click', function(ev){
+      const req = ['fullname','class','school','dob'];
+      for(const id of req){
+        const el = document.getElementById(id);
+        if(!el.value){
+          ev.preventDefault();
+          el.reportValidity();
+          return;
+        }
+      }
+    });
+  </script>
+</body>
+</html>
